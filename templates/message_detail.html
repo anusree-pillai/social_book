@@ -1,0 +1,14 @@
+{% load static %}
+
+{% for message in messages %}
+    <div>
+        <strong>{{ message.sender.username }}</strong>
+        <p>{{ message.content }}</p>
+    </div>
+{% endfor %}
+
+<form method="post" action="{% url 'message_detail' user_id %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Send Message</button>
+</form>

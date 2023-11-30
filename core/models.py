@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 User = get_user_model()
 
@@ -40,3 +40,28 @@ class FollowersCount(models.Model):
 
     def __str__(self):
         return self.user
+    
+class ThreadModel(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
+    has_unread = models.BooleanField(default=False)
+
+class MessageModel(models.Model):
+    thread = models.ForeignKey('ThreadModel', on_delete=models.CASCADE, related_name='+', blank=True, null=True)
+    sender_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
+    receiver_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
+    body = models.CharField(max_length=1000)
+    image = models.ImageField(upload_to='message_images', blank=True, null=True)
+    date = models.DateTimeField(default=datetime.now)
+    is_read = models.BooleanField(default=False) 
+
+        
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    content = models.TextField()
+
+    def __str__(self):
+        return f"{self.sender.username} to {self.receiver.username}"
