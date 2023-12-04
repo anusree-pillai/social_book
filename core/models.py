@@ -41,7 +41,7 @@ class FollowersCount(models.Model):
     def __str__(self):
         return self.user
     
-class ThreadModel(models.Model):
+'''class ThreadModel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='+')
     has_unread = models.BooleanField(default=False)
@@ -55,7 +55,7 @@ class MessageModel(models.Model):
     date = models.DateTimeField(default=datetime.now)
     is_read = models.BooleanField(default=False) 
 
-        
+      '''  
 
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
 from django.views import View
@@ -9,6 +9,8 @@ from .models import Profile, Post, LikePost, FollowersCount, Message
 from .forms import MessageForm
 from itertools import chain
 import random
+#from django.shortcuts import render, get_object_or_404
+
 #from django.contrib import messages
 
 # Create your views here.
@@ -58,9 +60,11 @@ def index(request):
     suggestions_username_profile_list = list(chain(*username_profile_list))
 #send message starts here
     all_users_message = User.objects.exclude(id=request.user.id)
-    print (all_users_message)
+    #print (all_users_message)
+    #including messages 
+    user_messages = Message.objects.filter(receiver=request.user)
 
-    return render(request, 'index.html', {'all_users_message': all_users_message,'user_profile': user_profile, 'posts':feed_list, 'suggestions_username_profile_list': suggestions_username_profile_list[:4]})
+    return render(request, 'index.html', {'user_messages': user_messages,'all_users_message': all_users_message,'user_profile': user_profile, 'posts':feed_list, 'suggestions_username_profile_list': suggestions_username_profile_list[:4]})
 '''#send message strats here
     all_users_message = User.objects.exclude(id=request.user.id)
     print (all_users_message)
@@ -271,7 +275,29 @@ def follow(request):
             return redirect('/profile/'+user)
     else:
         return redirect('/')
+    
 
+'''@login_required(login_url='signin')
+def myprofile(request, pk):
+    user_object = get_object_or_404(User, username=pk)
+    user_profile = Profile.objects.get(user=user_object)
+    user_posts = Post.objects.filter(user=user_object)
+    user_post_length = len(user_posts)
+
+    user_followers = len(FollowersCount.objects.filter(user=user_object))
+    user_following = len(FollowersCount.objects.filter(follower=user_object))
+
+    context = {
+        'user_object': user_object,
+        'user_profile': user_profile,
+        'user_posts': user_posts,
+        'user_post_length': user_post_length,
+        'user_followers': user_followers,
+        'user_following': user_following,
+    }
+    print(f"Attempting to access profile for user with username: {pk}")
+
+    return render(request, 'profile.html', context)'''
 @login_required(login_url='signin')
 def settings(request):
     user_profile = Profile.objects.get(user=request.user)

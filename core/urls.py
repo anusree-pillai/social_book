@@ -13,6 +13,7 @@ urlpatterns = [
 
     #path('list_users/', views.list_users, name='list_users'),
     path('message_detail/<int:user_id>/', views.message_detail, name='message_detail'),
+    #path('myprofile/<str:pk>/', views.myprofile, name='myprofile'),
 
     #path('inbox/', ListThreads.as_view(), name='inbox'),
     #path('inbox/create_thread', CreateThread.as_view(), name='create_thread'),
