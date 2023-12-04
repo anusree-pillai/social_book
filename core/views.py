@@ -1,11 +1,16 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
+from django.views import View
+from django.db.models import Q 
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-from .models import Profile, Post, LikePost, FollowersCount
+from .models import Profile, Post, LikePost, FollowersCount, Message
+from .forms import MessageForm
 from itertools import chain
 import random
+#from django.shortcuts import render, get_object_or_404
+
 #from django.contrib import messages
 
 # Create your views here.
@@ -53,9 +58,19 @@ def index(request):
         username_profile_list.append(profile_lists)
 
     suggestions_username_profile_list = list(chain(*username_profile_list))
+#send message starts here
+    all_users_message = User.objects.exclude(id=request.user.id)
+    #print (all_users_message)
+    #including messages 
+    user_messages = Message.objects.filter(receiver=request.user)
 
+    return render(request, 'index.html', {'user_messages': user_messages,'all_users_message': all_users_message,'user_profile': user_profile, 'posts':feed_list, 'suggestions_username_profile_list': suggestions_username_profile_list[:4]})
+'''#send message strats here
+    all_users_message = User.objects.exclude(id=request.user.id)
+    print (all_users_message)
+    #return redirect('list_users', {'all_users': all_users})
+    return render(request, 'list_users.html', {'all_users': all_users})'''
 
-    return render(request, 'index.html', {'user_profile': user_profile, 'posts':feed_list, 'suggestions_username_profile_list': suggestions_username_profile_list[:4]})
 
 @login_required(login_url='signin')
 def upload(request):
@@ -136,6 +151,7 @@ def profile(request, pk):
     context = {
         'user_object': user_object,
         'user_profile': user_profile,
+        
         'user_posts': user_posts,
         'user_post_length': user_post_length,
         'button_text': button_text,
@@ -143,6 +159,105 @@ def profile(request, pk):
         'user_following': user_following,
     }
     return render(request, 'profile.html', context)
+
+#creating views for sending messages
+'''@login_required(login_url='signin')
+def list_users(request):
+    all_users = User.objects.exclude(id=request.user.id)
+    print (all_users)
+    #return redirect('list_users', {'all_users': all_users})
+    return render(request, 'list_users.html', {'all_users': all_users})'''
+@login_required(login_url='signin')
+def message_detail(request, user_id):
+    receiver = User.objects.get(id=user_id)
+    messages = Message.objects.filter(
+        (Q(receiver=receiver, sender=request.user) | Q(sender=receiver, receiver=request.user))
+        ).order_by('timestamp')
+    form = MessageForm()
+
+    if request.method == 'POST':
+        form = MessageForm(request.POST)
+        if form.is_valid():
+            new_message = form.save(commit=False)
+            new_message.sender = request.user
+            new_message.receiver = receiver
+            new_message.save()
+            form = MessageForm()
+
+    return render(request, 'message_detail.html', {'user_id': user_id, 'receiver': receiver, 'messages': messages, 'form': form})
+
+'''class ListThreads(View):
+    def get(self, request, *args, **kwargs):
+        threads = ThreadModel.objects.filter(Q(user = request.user) | Q(receiver = request.user))
+        context = {
+
+            'threads': threads
+
+        }
+        return render(request, 'inbox.html', context)  
+
+class CreateThread(View):
+    def get(self, request, *args, **kwargs):
+        form = ThreadForm()
+        context = {
+            'form' : form
+        }
+        return render(request, 'create_thread.html', context)
+    
+    def post(self, request, *args, **kwargs):
+        form = ThreadForm(request.POST)
+
+        username = request.POST.get('username')
+        try:
+            receiver = User.objects.get(username=username)
+            if ThreadModel.objects.filter(user=request.user, receiver=receiver).exists():
+                thread = ThreadModel.objects.filter(user=request.user, receiver=receiver)[0]
+                return redirect('thread', pk=thread.pk)
+            elif ThreadModel.objects.filter(user=receiver, receiver=request.user).exists():
+                thread =ThreadModel.objects.filter(user=receiver, receiver=request.user)[0]
+                return redirect('thread', pk=thread.pk)
+            
+            if form.is_valid():
+                thread = ThreadModel(
+                    user = request.user,
+                    receiver=receiver
+                )
+                thread.save()
+                return redirect('thread', pk=thread.pk)
+            
+
+
+        except:
+            return redirect('create_thread')    
+        
+class ThreadView(View):
+    def get(self, request, pk, *args, **kwargs):
+        form = MessageForm()
+        thread = ThreadModel.objects.get(pk=pk)
+        message_list = MessageModel.objects.filter(thread__pk__contains=pk)
+        context = {
+           'thread': thread,
+           'form': form,
+           'message_list': message_list
+        }
+        return render(request, 'thread.html', context)
+    
+class CreateMessage(View):
+    def post(self, request, pk, *args, **kwargs):
+        thread = ThreadModel.objects.get(pk=pk)
+        if thread.receiver == request.user:
+           receiver = thread.user
+        else:
+           receiver = thread.receiver
+        message = MessageModel (
+           thread=thread,
+           sender_user=request.user,
+           receiver_user=receiver,
+           body=request.POST.get('message'),
+        )
+        message.save()
+        return redirect('thread', pk=pk)    '''
+
 
 @login_required(login_url='signin')
 def follow(request):
@@ -160,7 +275,29 @@ def follow(request):
             return redirect('/profile/'+user)
     else:
         return redirect('/')
+    
 
+'''@login_required(login_url='signin')
+def myprofile(request, pk):
+    user_object = get_object_or_404(User, username=pk)
+    user_profile = Profile.objects.get(user=user_object)
+    user_posts = Post.objects.filter(user=user_object)
+    user_post_length = len(user_posts)
+
+    user_followers = len(FollowersCount.objects.filter(user=user_object))
+    user_following = len(FollowersCount.objects.filter(follower=user_object))
+
+    context = {
+        'user_object': user_object,
+        'user_profile': user_profile,
+        'user_posts': user_posts,
+        'user_post_length': user_post_length,
+        'user_followers': user_followers,
+        'user_following': user_following,
+    }
+    print(f"Attempting to access profile for user with username: {pk}")
+
+    return render(request, 'profile.html', context)'''
 @login_required(login_url='signin')
 def settings(request):
     user_profile = Profile.objects.get(user=request.user)
@@ -186,9 +323,9 @@ def settings(request):
             user_profile.location = location
             user_profile.save()
         
-        #return redirect('settings')
+        return redirect('settings')
         #return HttpResponse("Account settings updated successfully")
-        messages.success(request,"Account settings saved successfully")
+        #messages.success(request,"Account settings saved successfully")
     return render(request, 'setting.html', {'user_profile': user_profile})
 
 def signup(request):
